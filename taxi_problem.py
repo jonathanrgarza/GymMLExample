@@ -2,12 +2,12 @@ import random
 import time
 
 import gym
-import numpy as np
 from gym import Env
-from numpy import ndarray
+
+from QTable import GreedyQTable
 
 
-def solve_taxi_problem() -> ndarray:
+def solve_taxi_problem() -> GreedyQTable:
     """
     Determines an ideal solution to the Taxi-v3 Gym environment
     using Q-Table learning
@@ -23,7 +23,7 @@ def solve_taxi_problem() -> ndarray:
     alpha = 0.7  # learning rate | The factor that newly acquired information overrides old information
     discount_factor = 0.618  # The factor which determines the valuing of rewards received earlier higher than those
     # received later (reflecting a "good start")
-    epsilon = 1  # Determines likelihood that the AI will explore over exploit for a given step
+    initial_epsilon = 1  # Determines likelihood that the AI will explore over exploit for a given step
     max_epsilon = 1  # Maximum value for epsilon | Always exploring
     min_epsilon = 0.01  # Minimum value for epsilon | Mostly exploiting
     decay = 0.01  # Decay factor in epsilon between episode runs
@@ -32,7 +32,9 @@ def solve_taxi_problem() -> ndarray:
     max_steps = 100
 
     # STEP 1: Initializing the Q-table
-    q: ndarray = np.zeros([env.observation_space.n, env.action_space.n])
+    # q = np.zeros([env.observation_space.n, env.action_space.n])
+    q = GreedyQTable(env.observation_space.n, env.action_space.n, alpha, discount_factor,
+                     initial_epsilon, max_epsilon, min_epsilon, decay, env.action_space)
 
     # Creating lists to keep track of reward and epsilon values
     training_rewards = []
@@ -43,6 +45,7 @@ def solve_taxi_problem() -> ndarray:
     for episode in range(train_episodes):
         # Resetting the environment each time as per requirement
         state = env.reset()
+        q.reset_state_field(state)
         # Starting the tracker for the rewards
         total_training_rewards = 0
 
@@ -50,25 +53,18 @@ def solve_taxi_problem() -> ndarray:
             # Choosing an action given the states based on a random number
             exp_exp_tradeoff = random.uniform(0, 1)
 
-            # STEP 2: First option for choosing the initial action - explore
-            if exp_exp_tradeoff <= epsilon:
-                action = env.action_space.sample()
-            # STEP 2: Second option for choosing the initial action - exploit
-            else:
-                action = np.argmax(q[state, :])
+            # STEP 2: Choose an action
+            action = q.get_next_action(exp_exp_tradeoff)
 
             # STEP 3 & 4: perform the action and get the reward
-
             # Take the action and getting the reward and outcome state
             new_state, reward, done, _ = env.step(action)
 
             # STEP 5: Update the Q-table
-            q[state, action] = q[state, action] + alpha * (reward + discount_factor *
-                                                           np.max(q[new_state, :]) - q[state, action])
+            q.update_table(new_state, reward)
 
             # Increasing the total reward and updating the state
             total_training_rewards += reward
-            state = new_state
 
             # Check if end of the episode
             if done:
@@ -76,18 +72,18 @@ def solve_taxi_problem() -> ndarray:
                 break
 
         # Cutting down on exploration by reducing the epsilon
-        epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay * episode)
+        q.update_epsilon(episode)
 
         # Adding the total reward and reduced epsilon values
         training_rewards.append(total_training_rewards)
-        epsilons.append(epsilon)
+        epsilons.append(q.epsilon)
 
     env.close()
     print(f"Training score over time: {str(sum(training_rewards)/train_episodes)}\n")
     return q
 
 
-def run_taxi_problem(q: ndarray = None):
+def run_taxi_problem(q: GreedyQTable = None):
     """
     Runs a game of Taxi using a given Q-Table
     :param q: The Q-Table or None to run a game of random actions
@@ -98,6 +94,9 @@ def run_taxi_problem(q: ndarray = None):
 
     # Get initial state for the environment
     state = env.reset()
+    if q is not None:
+        q.reset_state_field(state)
+
     # Render the initial state
     env.render()
 
@@ -107,7 +106,7 @@ def run_taxi_problem(q: ndarray = None):
     while not done:
         # STEP 2: Choose the ideal action to take
         if q is not None:
-            action = np.argmax(q[state, :])
+            action = q.get_ideal_action()
         else:
             action = env.action_space.sample()  # Take a random action
 
@@ -118,7 +117,9 @@ def run_taxi_problem(q: ndarray = None):
 
         # Increasing the total reward and updating the state
         total_training_rewards += reward
-        state = new_state
+
+        if q is not None:
+            q.state = new_state
 
         # Render this step
         env.render()
