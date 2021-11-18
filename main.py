@@ -49,11 +49,11 @@ def run_q_learning_gym():
     # 2. Parameters of Q-Learning
     eta = .628  # discount factor ?
     gma = .9  # learning rate ?
-    epis = 5000
+    episodes = 5000
     rev_list = []  # rewards per episode calculate
 
     # 3. Q-learning algorithm
-    for i in range(epis):
+    for i in range(episodes):
         print()
         print("New Episode")
         # Reset environment
@@ -82,7 +82,7 @@ def run_q_learning_gym():
 
     env.close()
     print()
-    print("Reward Sum on all episodes: " + str(sum(rev_list) / epis))
+    print("Reward Sum on all episodes: " + str(sum(rev_list) / episodes))
     print("Final Values Q-Table")
     print(q)
 
