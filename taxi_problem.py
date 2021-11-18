@@ -1,14 +1,23 @@
 import random
+import time
 
 import gym
 import numpy as np
 from gym import Env
+from numpy import ndarray
 
 
-def solve_taxi_problem():
+def solve_taxi_problem() -> ndarray:
+    """
+    Determines an ideal solution to the Taxi-v3 Gym environment
+    using Q-Table learning
+
+    :return: The Q-Table
+    """
+    # Setup the Gym environment
     env: Env = gym.make("Taxi-v3")
     env.reset()
-    env.render()
+    # env.render()
 
     # Q-Learning Algorithm parameters
     alpha = 0.7  # learning rate | the factor that newer data is
@@ -19,11 +28,10 @@ def solve_taxi_problem():
     decay = 0.01  #
 
     train_episodes = 2000
-    test_episodes = 100
     max_steps = 100
 
-    # Initializing the Q-table
-    q = np.zeros([env.observation_space.n, env.action_space.n])
+    # STEP 1: Initializing the Q-table
+    q: ndarray = np.zeros([env.observation_space.n, env.action_space.n])
 
     # Creating lists to keep track of reward and epsilon values
     training_rewards = []
@@ -35,7 +43,7 @@ def solve_taxi_problem():
         # Starting the tracker for the rewards
         total_training_rewards = 0
 
-        for step in range(100):
+        for step in range(max_steps):
             # Choosing an action given the states based on a random number
             exp_exp_tradeoff = random.uniform(0, 1)
 
@@ -49,7 +57,7 @@ def solve_taxi_problem():
             # STEP 3 & 4: perform the action and get the reward
 
             # Take the action and getting the reward and outcome state
-            new_state, reward, done, info = env.step(action)
+            new_state, reward, done, _ = env.step(action)
 
             # STEP 5: Update the Q-table
             q[state, action] = q[state, action] + alpha * (reward + discount_factor *
@@ -61,7 +69,7 @@ def solve_taxi_problem():
 
             # Check if end of the episode
             if done:
-                print(f"Total reward for episode {episode}: {total_training_rewards}")
+                # print(f"Total reward for episode {episode}: {total_training_rewards}")
                 break
 
         # Cutting down on exploration by reducing the epsilon
@@ -71,11 +79,58 @@ def solve_taxi_problem():
         training_rewards.append(total_training_rewards)
         epsilons.append(epsilon)
 
-    print(f"Training score over time: {str(sum(training_rewards)/train_episodes)}")
+    env.close()
+    print(f"Training score over time: {str(sum(training_rewards)/train_episodes)}\n")
+    return q
+
+
+def run_taxi_problem(q: ndarray):
+    # STEP  1: Setup the Gym environment
+    env: Env = gym.make("Taxi-v3")
+
+    # Get initial state for the environment
+    state = env.reset()
+    # Render the initial state
+    env.render()
+
+    # Starting the tracker for the rewards
+    total_training_rewards = 0
+    done = False
+    while not done:
+        # STEP 2: Choose the ideal action to take
+        if q is not None:
+            action = np.argmax(q[state, :])
+        else:
+            action = env.action_space.sample()  # Take a random action
+
+        # STEP 3 & 4: perform the action and get the reward
+
+        # Take the action and getting the reward and outcome state
+        new_state, reward, done, _ = env.step(action)
+
+        # Increasing the total reward and updating the state
+        total_training_rewards += reward
+        state = new_state
+
+        # Render this step
+        env.render()
+        print(f"Reward: {reward}\n")
+
+        # Wait a bit before the next frame
+        time.sleep(0.01)
+
+    print("Taxi Game Complete")
+    print(f"Score: {total_training_rewards}\n")
+    env.close()
 
 
 def main():
-    solve_taxi_problem()
+    # Run a random game
+    run_taxi_problem(None)
+    # Find an ideal solution
+    q = solve_taxi_problem()
+    # Run an ideal game
+    run_taxi_problem(q)
 
 
 # Runs if the script is called directly
