@@ -12,15 +12,21 @@ class QTable:
         self.state = 0
         self.action = 0
 
+    def reset_state_field(self, state) -> None:
+        self.state = state
+
     def get_next_action(self, episode: int):
         state = self.state
         self.action = np.argmax(self.q[state, :] + np.random.rand(1, self.num_actions) * (1. / (episode + 1)))
         return self.action
 
-    def update_table(self, new_state, reward):
+    def update_table(self, new_state, reward: int) -> None:
         state = self.state
         action = self.action
         self.q[state, action] = self.q[state, action] + self.alpha * (reward + self.discount_factor *
                                                                       np.max(self.q[new_state, :]) -
                                                                       self.q[state, action])
         self.state = new_state
+
+    def __str__(self):
+        return f"Q-Table:\n{self.q}"
