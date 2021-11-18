@@ -16,16 +16,17 @@ def solve_taxi_problem() -> ndarray:
     """
     # Setup the Gym environment
     env: Env = gym.make("Taxi-v3")
-    env.reset()
+    # env.reset()
     # env.render()
 
     # Q-Learning Algorithm parameters
-    alpha = 0.7  # learning rate | the factor that newer data is
-    discount_factor = 0.618  # The factor that older data loses value
-    epsilon = 1  # ?
-    max_epsilon = 1  # ?
-    min_epsilon = 0.01  # ?
-    decay = 0.01  #
+    alpha = 0.7  # learning rate | The factor that newly acquired information overrides old information
+    discount_factor = 0.618  # The factor which determines the valuing of rewards received earlier higher than those
+    # received later (reflecting a "good start")
+    epsilon = 1  # Determines likelihood that the AI will explore over exploit for a given step
+    max_epsilon = 1  # Maximum value for epsilon | Always exploring
+    min_epsilon = 0.01  # Minimum value for epsilon | Mostly exploiting
+    decay = 0.01  # Decay factor in epsilon between episode runs
 
     train_episodes = 2000
     max_steps = 100
@@ -36,6 +37,8 @@ def solve_taxi_problem() -> ndarray:
     # Creating lists to keep track of reward and epsilon values
     training_rewards = []
     epsilons = []
+
+    print("Finding ideal solution to the Taxi game")
 
     for episode in range(train_episodes):
         # Resetting the environment each time as per requirement
@@ -84,7 +87,12 @@ def solve_taxi_problem() -> ndarray:
     return q
 
 
-def run_taxi_problem(q: ndarray):
+def run_taxi_problem(q: ndarray = None):
+    """
+    Runs a game of Taxi using a given Q-Table
+    :param q: The Q-Table or None to run a game of random actions
+    :return: None
+    """
     # STEP  1: Setup the Gym environment
     env: Env = gym.make("Taxi-v3")
 
@@ -117,7 +125,10 @@ def run_taxi_problem(q: ndarray):
         print(f"Reward: {reward}\n")
 
         # Wait a bit before the next frame
-        time.sleep(0.01)
+        if q is not None:
+            time.sleep(0.7)
+        else:
+            time.sleep(0.001)
 
     print("Taxi Game Complete")
     print(f"Score: {total_training_rewards}\n")
@@ -126,7 +137,7 @@ def run_taxi_problem(q: ndarray):
 
 def main():
     # Run a random game
-    run_taxi_problem(None)
+    run_taxi_problem()
     # Find an ideal solution
     q = solve_taxi_problem()
     # Run an ideal game
