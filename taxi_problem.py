@@ -1,10 +1,24 @@
 import random
 import time
+from typing import Optional
 
 import gym
 from gym import Env
 
-from QTable import GreedyQTable
+from QTable import GreedyQTable, TrainedQTable
+
+
+def clear_console():
+    """
+    Clears the console's display.
+
+    :return: None
+    """
+    import os
+    clear_command: str = "cls"
+    if os.name != "ns":
+        clear_command = "clear"
+    os.system(clear_command)
 
 
 def solve_taxi_problem() -> GreedyQTable:
@@ -83,9 +97,10 @@ def solve_taxi_problem() -> GreedyQTable:
     return q
 
 
-def run_taxi_problem(q: GreedyQTable = None):
+def run_taxi_problem(q: TrainedQTable = None):
     """
     Runs a game of Taxi using a given Q-Table
+
     :param q: The Q-Table or None to run a game of random actions
     :return: None
     """
@@ -106,7 +121,7 @@ def run_taxi_problem(q: GreedyQTable = None):
     while not done:
         # STEP 2: Choose the ideal action to take
         if q is not None:
-            action = q.get_ideal_action()
+            action = q.get_next_action()
         else:
             action = env.action_space.sample()  # Take a random action
 
@@ -122,6 +137,7 @@ def run_taxi_problem(q: GreedyQTable = None):
             q.state = new_state
 
         # Render this step
+        clear_console()
         env.render()
         print(f"Reward: {reward}\n")
 
@@ -137,12 +153,24 @@ def run_taxi_problem(q: GreedyQTable = None):
 
 
 def main():
-    # Run a random game
-    run_taxi_problem()
-    # Find an ideal solution
-    q = solve_taxi_problem()
-    # Run an ideal game
+    q: Optional[TrainedQTable] = None
+    try:
+        q = TrainedQTable.from_csv("greedy_qtable.csv")
+    except IOError:
+        print("No existing trained QTable")
+
+    # Run a random or ideal game
     run_taxi_problem(q)
+
+    if q is None:
+        # Find an ideal solution
+        q = solve_taxi_problem().to_trained_qtable()
+        # Run an ideal game
+        run_taxi_problem(q)
+        q.save_to_csv("greedy_qtable.csv")
+
+    print("*** Q Table ***")
+    print(q)
 
 
 # Runs if the script is called directly
