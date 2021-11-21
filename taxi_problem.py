@@ -97,6 +97,47 @@ def solve_taxi_problem() -> GreedyQTable:
     return q
 
 
+def evaluate_agent(q: TrainedQTable, episodes: int = 100):
+    if type(q) is not TrainedQTable:
+        raise TypeError
+
+    if episodes <= 0:
+        raise ValueError
+
+    total_epochs = 0
+    total_penalties = 0
+    total_rewards = 0
+
+    env: Env = gym.make('Taxi-v3')
+
+    for _ in range(episodes):
+        q.reset_state_field(env.reset())
+
+        epochs = 0
+        penalties = 0
+        rewards = 0
+
+        done = False
+        while not done:
+            action = q.get_next_action()
+            state, reward, done, _ = env.step(action)
+
+            if reward == -10:
+                penalties += 1
+            epochs += 1
+            rewards += reward
+
+            q.state = state
+        total_penalties += penalties
+        total_epochs += epochs
+        total_rewards += rewards
+
+    print(f"Performance results after {episodes} episodes:")
+    print(f"Average timesteps per episode: {total_epochs / episodes}")
+    print(f"Average rewards per episode: {total_rewards / episodes}")
+    print(f"Average penalties per episode: {total_penalties / episodes}")
+
+
 def run_taxi_problem(q: TrainedQTable = None):
     """
     Runs a game of Taxi using a given Q-Table
@@ -169,6 +210,8 @@ def main():
         run_taxi_problem(q)
         q.save_to_csv("greedy_qtable.csv")
 
+    evaluate_agent(q)
+    print("")
     print("*** Q Table ***")
     print(q)
 
