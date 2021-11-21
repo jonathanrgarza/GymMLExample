@@ -97,8 +97,8 @@ def solve_taxi_problem() -> GreedyQTable:
     return q
 
 
-def evaluate_agent(q: TrainedQTable, episodes: int = 100):
-    if type(q) is not TrainedQTable:
+def evaluate_agent(q: Optional[TrainedQTable] = None, episodes: int = 100):
+    if type(q) is not TrainedQTable and q is not None:
         raise TypeError
 
     if episodes <= 0:
@@ -111,7 +111,10 @@ def evaluate_agent(q: TrainedQTable, episodes: int = 100):
     env: Env = gym.make('Taxi-v3')
 
     for _ in range(episodes):
-        q.reset_state_field(env.reset())
+        if q is not None:
+            q.reset_state_field(env.reset())
+        else:
+            env.reset()
 
         epochs = 0
         penalties = 0
@@ -119,7 +122,11 @@ def evaluate_agent(q: TrainedQTable, episodes: int = 100):
 
         done = False
         while not done:
-            action = q.get_next_action()
+            if q is not None:
+                action = q.get_next_action()
+            else:
+                action = env.action_space.sample()
+
             state, reward, done, _ = env.step(action)
 
             if reward == -10:
@@ -127,7 +134,8 @@ def evaluate_agent(q: TrainedQTable, episodes: int = 100):
             epochs += 1
             rewards += reward
 
-            q.state = state
+            if q is not None:
+                q.state = state
         total_penalties += penalties
         total_epochs += epochs
         total_rewards += rewards
@@ -202,6 +210,10 @@ def main():
 
     # Run a random or ideal game
     run_taxi_problem(q)
+
+    if q is None:
+        evaluate_agent()
+        print("")
 
     if q is None:
         # Find an ideal solution
